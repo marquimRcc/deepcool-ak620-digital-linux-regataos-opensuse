@@ -1,0 +1,20 @@
+# DeepCool Digital Driver - Serviço Principal
+# Este arquivo é um template - o install.sh cria a versão final em /etc/systemd/system/
+
+[Unit]
+Description=DeepCool Digital Driver
+After=multi-user.target
+
+[Service]
+Type=simple
+User=USUARIO
+ExecStart=/usr/bin/python3.11 CAMINHO/src/deepcool-driver.py
+Environment="SENSOR=coretemp"
+Environment="PRODUCT_ID=0x0004"
+Environment="TEMP_UNIT=C"
+Environment="PYTHONUNBUFFERED=1"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

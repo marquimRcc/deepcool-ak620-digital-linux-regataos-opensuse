@@ -1,64 +1,184 @@
-# DeepCool AK Series Digital Air Cooler Monitor on Linux
+# DeepCool AK Series Digital - Regata OS / openSUSE
 
-This project enables monitoring of temperature and CPU utilization on DeepCool's AK series digital air cooler for Linux systems.  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Regata OS](https://img.shields.io/badge/Regata%20OS-Compatible-green.svg)](https://regataos.com.br/)
+[![openSUSE](https://img.shields.io/badge/openSUSE-Compatible-green.svg)](https://www.opensuse.org/)
 
-## Dependencies
+Driver para coolers DeepCool da série AK Digital adaptado para **Regata OS** e **openSUSE**.
 
-This script requires the following dependencies:
-- Python 3
-- `hidapi`
-- `psutil`
+> 🇺🇸 [English version](README.en.md)
 
-You can install by running the provided `setup.sh` script:
+![DeepCool AK500S Digital](https://img.shields.io/badge/Testado-AK500S%20Digital-blue)
+![DeepCool AK620 Digital](https://img.shields.io/badge/Suportado-AK620%20Digital-blue)
+
+---
+
+## ✨ Características
+
+- 🎨 **Logs coloridos** com timestamps no terminal
+- 🔄 **Alterna automaticamente** entre Temperatura e Uso de CPU no display
+- 🌡️ **Suporte a Celsius e Fahrenheit**
+- 🚀 **Inicia automaticamente** no boot do sistema
+- 😴 **Reinicia após suspend/hibernate**
+- 🔧 **Detecção automática** de hardware e sensores
+- 🐛 **Correção do conflito** da biblioteca HID no openSUSE
+
+---
+
+## 📋 Dispositivos Suportados
+
+| Modelo | Product ID | Status |
+|--------|------------|--------|
+| AK620 Digital | 0x0001 | ✅ Suportado |
+| AK500S Digital | 0x0004 | ✅ Testado |
+| AK400 Digital | 0x0001 | ✅ Suportado |
+
+---
+
+## 🚀 Instalação
+
+### Pré-requisitos
+
+- Regata OS ou openSUSE (Tumbleweed/Leap)
+- Python 3.11
+- Cooler DeepCool conectado via USB
+
+### Instalação Rápida
+
 ```bash
-usage: ./setup.sh <model> <sensor> [-dt | --disable-temp] [-du | --disable-utils]
-        -dt, --disable-temp:    disable sensor temperature display
-        -du, --disable-utils:   disable CPU utilization display
+# Clone o repositório
+git clone https://github.com/marquimRcc/deepcool-ak620-digital-linux-regataos-opensuse.git
+cd deepcool-ak620-digital-linux-regataos-opensuse
+
+# Execute o instalador
+chmod +x install.sh
+./install.sh
 ```
 
-Available supported models:
-- `ak620`
-- `ak500s`
+O instalador irá:
+1. Detectar seu hardware automaticamente
+2. Perguntar qual modelo de cooler você possui
+3. Perguntar se prefere Celsius ou Fahrenheit
+4. Instalar todas as dependências
+5. Configurar o serviço para iniciar no boot
 
-### Step-by-Step Guide
+---
 
-1. **Install Python Dependencies**: First, you need to install the necessary Python libraries, `hidapi` and `psutil`. These libraries allow the script to interact with the hardware and monitor system resources.
+## 📖 Uso
 
-    Open a terminal and run the following commands:
-    ```bash
-    pip install hid
-    pip install psutil
-    ```
-    Note: If you encounter permission errors, try adding --user to install the packages for your user only or use sudo to install them system-wide (not recommended for `pip`).
+### Comandos Úteis
 
-2. **Clone the Repository**: The script and necessary configuration files are hosted on GitHub. Use git to clone the repository to your local machine.
-    ```bash
-    git clone https://github.com/raghulkrishna/deepcool-ak620-digital-linux
-    ```
+Após a instalação, use os scripts auxiliares:
 
-3. **Navigate to the Project Directory**: Change your current directory to the newly cloned project folder.
-    ```bash
-    cd deepcool-ak620-digital-linux
-    ```
+```bash
+cd ~/Documentos/git/deepcool-ak620-digital-linux-regataos-opensuse
 
-4. **Look up the hardware temperature sensor**: Retrieve hardware temperature sensor label in the system. Run the following Python code snippet.
-    ```python
-    import psutil
-    print(psutil.sensors_temperatures().keys())
-    ```
+./status.sh      # Ver status do serviço e logs recentes
+./logs.sh        # Ver logs em tempo real (coloridos!)
+./restart.sh     # Reiniciar o serviço
+./test.sh        # Testar manualmente (modo debug)
+```
 
-5. **Run the Setup Script**: The `setup.sh` script will automate the configuration and setup process. Run the script by executing:
+### Comandos Systemd
 
-    Replace `model` with one of the available models matches your configuration and `sensor` with the label you retrieve from previous step.
-    ```bash
-    ./setup.sh <model> <sensor>
-    ```
+```bash
+# Ver status
+sudo systemctl status deepcool-digital.service
 
-## Troubleshooting
+# Parar serviço
+sudo systemctl stop deepcool-digital.service
 
-1) If you encounter any errors related to HIDAPI or psutil, ensure that the dependencies are installed correctly by running the setup.sh script.
-2) Make sure the AK620 digital air cooler is properly connected to your system and that the correct Vendor ID and Product ID are set in the script.
-3) How to verify Product ID and Vendor ID ?  use lsusb -v to get the list of devices ans search for your cooler.
+# Iniciar serviço
+sudo systemctl start deepcool-digital.service
 
-Credits
-https://github.com/Algorithm0/deepcool-digital-info
+# Desabilitar do boot
+sudo systemctl disable deepcool-digital.service
+```
+
+---
+
+## 🗑️ Desinstalação
+
+```bash
+./uninstall.sh
+```
+
+Ou manualmente:
+
+```bash
+sudo systemctl stop deepcool-digital.service
+sudo systemctl disable deepcool-digital.service
+sudo rm /etc/systemd/system/deepcool-digital*.service
+sudo rm /etc/udev/rules.d/99-deepcool.rules
+sudo systemctl daemon-reload
+```
+
+---
+
+## 🔧 Solução de Problemas
+
+Veja o guia completo em [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+### Problemas Comuns
+
+**Display não mostra nada:**
+```bash
+# Verificar se o dispositivo foi detectado
+lsusb | grep -i "3633"
+
+# Verificar permissões
+ls -la /dev/hidraw*
+```
+
+**Erro "module 'hid' has no attribute 'device'":**
+```bash
+# Reinstalar biblioteca correta
+python3.11 -m pip uninstall -y hid
+python3.11 -m pip install --user --force-reinstall hidapi
+```
+
+---
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+1. Fazer um Fork do projeto
+2. Criar uma branch para sua feature (`git checkout -b feature/NovaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona NovaFeature'`)
+4. Push para a branch (`git push origin feature/NovaFeature`)
+5. Abrir um Pull Request
+
+---
+
+## 📜 Créditos
+
+- **Projeto original:** [raghulkrishna/deepcool-ak620-digital-linux](https://github.com/raghulkrishna/deepcool-ak620-digital-linux)
+- **Protocolo HID:** [Algorithm0/deepcool-digital-info](https://github.com/Algorithm0/deepcool-digital-info)
+- **Adaptação Regata OS:** [marquimRcc](https://github.com/marquimRcc)
+
+---
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
+## 📊 Exemplo de Logs
+
+```
+══════════════════════════════════════════════════════
+  DeepCool Digital v2.4 - Regata OS
+  Sensor: coretemp │ Device: 0x3633:0x4
+  Modo:   TEMP(2s) ↔ CPU%(2s)
+══════════════════════════════════════════════════════
+
+[14:32:15] ▶ Conectando (0x3633:0x4)...
+[14:32:15] ✓ Conectado!
+
+[14:32:16] [🌡️ TEMP] Display:  32°C │ Barra: [███░░░░░░░]
+[14:32:18] [📊 CPU%] Display:  45 % │ Barra: [████░░░░░░]
+[14:32:20] [🌡️ TEMP] Display:  33°C │ Barra: [███░░░░░░░]
+[14:32:22] [📊 CPU%] Display:  38 % │ Barra: [███░░░░░░░]
+```

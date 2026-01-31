@@ -1,0 +1,13 @@
+# DeepCool Digital - Restart após Suspend/Hibernate
+# Este arquivo é um template - o install.sh cria a versão final em /etc/systemd/system/
+
+[Unit]
+Description=Restart DeepCool after suspend
+After=suspend.target hibernate.target hybrid-sleep.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl restart deepcool-digital.service
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target
