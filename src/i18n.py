@@ -5,9 +5,9 @@ import os
 
 TRANSLATIONS = {
     "pt": {
-        "display_switch": "Chave de exibição",
+        "display_switch": "Exibir",
         "temperature": "Temperatura",
-        "utilization": "Utilização",
+        "utilization": "Uso de CPU",
         "automatic": "Automático",
         "temp_display": "Mostrador de temperatura",
         "alarm_control": "Controle de alarme",
@@ -16,8 +16,8 @@ TRANSLATIONS = {
         "support": "Suporte",
         "website": "Website",
         "version": "Versão",
-        "restart": "Reinicialização",
-        "exit": "Saída",
+        "restart": "Reiniciar",
+        "exit": "Sair",
         "connected": "Conectado",
         "disconnected": "Desconectado",
         "connecting": "Conectando...",
