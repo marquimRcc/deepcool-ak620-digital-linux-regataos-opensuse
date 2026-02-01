@@ -3,23 +3,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Regata OS](https://img.shields.io/badge/Regata%20OS-Compatible-green.svg)](https://regataos.com.br/)
 [![openSUSE](https://img.shields.io/badge/openSUSE-Compatible-green.svg)](https://www.opensuse.org/)
+[![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-Compatible-blue.svg)](https://kde.org/)
 
-DeepCool AK Series Digital cooler driver adapted for **Regata OS** and **openSUSE**.
+System tray application for DeepCool AK Series Digital coolers on **Regata OS** and **openSUSE** with **KDE Plasma**.
 
 > 🇧🇷 [Versão em Português](README.md)
-
-![DeepCool AK500S Digital](https://img.shields.io/badge/Tested-AK500S%20Digital-blue)
-![DeepCool AK620 Digital](https://img.shields.io/badge/Supported-AK620%20Digital-blue)
 
 ---
 
 ## ✨ Features
 
-- 🎨 **Colored logs** with timestamps in terminal
+- 🖥️ **System tray icon** with full right-click menu on KDE
 - 🔄 **Auto-switches** between Temperature and CPU Usage on display
-- 🌡️ **Celsius and Fahrenheit** support
-- 🚀 **Auto-starts** on system boot
-- 😴 **Restarts after suspend/hibernate**
+- 🌡️ **Celsius and Fahrenheit** selectable from menu
+- ⏰ **Alarm control** — display blinks when temperature threshold is reached
+- 🚀 **Autostart** — launches with KDE Plasma
+- 🌍 **Auto language** — Portuguese or English based on system locale
 - 🔧 **Auto-detection** of hardware and sensors
 - 🐛 **Fixes HID library conflict** on openSUSE
 
@@ -31,7 +30,8 @@ DeepCool AK Series Digital cooler driver adapted for **Regata OS** and **openSUS
 |-------|------------|--------|
 | AK620 Digital | 0x0001 | ✅ Supported |
 | AK500S Digital | 0x0004 | ✅ Tested |
-| AK400 Digital | 0x0001 | ✅ Supported |
+| AK400 Digital | 0x0005 | ✅ Supported |
+| AG400 Digital | 0x0008 | ✅ Supported |
 
 ---
 
@@ -40,60 +40,65 @@ DeepCool AK Series Digital cooler driver adapted for **Regata OS** and **openSUS
 ### Prerequisites
 
 - Regata OS or openSUSE (Tumbleweed/Leap)
+- KDE Plasma
 - Python 3.11
 - DeepCool cooler connected via USB
 
 ### Quick Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/marquimRcc/deepcool-ak620-digital-linux-regataos-opensuse.git
 cd deepcool-ak620-digital-linux-regataos-opensuse
-
-# Run the installer
 chmod +x install.sh
 ./install.sh
 ```
 
 The installer will:
-1. Auto-detect your hardware
-2. Ask which cooler model you have
-3. Ask if you prefer Celsius or Fahrenheit
-4. Install all dependencies
-5. Configure the service to start on boot
+1. Install Python 3.11, PyQt5, and dependencies
+2. Fix the HID library conflict on openSUSE
+3. Configure USB permissions (udev)
+4. Ask if you want to launch at startup
+5. Start the application
+
+After installation, the **DeepCool Digital** icon will appear in the KDE system tray.
 
 ---
 
 ## 📖 Usage
 
-### Helper Scripts
+### Menu (right-click on tray icon)
 
-After installation, use the helper scripts:
-
-```bash
-cd ~/Documentos/git/deepcool-ak620-digital-linux-regataos-opensuse
-
-./status.sh      # Check service status and recent logs
-./logs.sh        # View real-time logs (colored!)
-./restart.sh     # Restart the service
-./test.sh        # Test manually (debug mode)
+```
+  AK500S Digital          ►  Vendor / Product ID / Sensor
+  ─────────────────
+  🌡️ 30°C │ 📊 4%            ← updates in real-time
+  ✅ Connected
+  ─────────────────
+  Display Switch          ►  ○ Temperature
+                             ○ Utilization
+                             ● Automatic
+  Temperature Display     ►  ● Celsius (°C)
+                             ○ Fahrenheit (°F)
+  Alarm Control           ►  ● Off
+                             ○ 60°C / 70°C / 80°C / 90°C
+  ─────────────────
+  ☐ Launch at startup
+  Support                 ►  Website / Version
+  ─────────────────
+  Restart
+  Exit
 ```
 
-### Systemd Commands
+### Tooltip
 
-```bash
-# Check status
-sudo systemctl status deepcool-digital.service
+Hover over the icon to see temperature and CPU usage.
 
-# Stop service
-sudo systemctl stop deepcool-digital.service
+### Dynamic Icon
 
-# Start service
-sudo systemctl start deepcool-digital.service
-
-# Disable from boot
-sudo systemctl disable deepcool-digital.service
-```
+The tray icon changes color based on temperature:
+- 🟢 **Green** — below 60°C (normal)
+- 🟠 **Orange** — 60°C to 79°C (warm)
+- 🔴 **Red** — 80°C or above (hot)
 
 ---
 
@@ -103,14 +108,28 @@ sudo systemctl disable deepcool-digital.service
 ./uninstall.sh
 ```
 
-Or manually:
+---
 
-```bash
-sudo systemctl stop deepcool-digital.service
-sudo systemctl disable deepcool-digital.service
-sudo rm /etc/systemd/system/deepcool-digital*.service
-sudo rm /etc/udev/rules.d/99-deepcool.rules
-sudo systemctl daemon-reload
+## 🏗️ Project Structure
+
+```
+├── main.py              # Entry point
+├── install.sh           # Installer
+├── uninstall.sh         # Uninstaller
+├── src/
+│   ├── config.py        # Constants and configuration
+│   ├── i18n.py          # Translations (PT/EN)
+│   ├── hardware.py      # Hardware detection
+│   ├── protocol.py      # DeepCool HID protocol
+│   ├── driver.py        # USB communication thread
+│   ├── icons.py         # Icon generation
+│   ├── autostart.py     # KDE autostart
+│   └── tray.py          # System tray interface
+├── docs/
+│   └── TROUBLESHOOTING.md
+├── LICENSE
+├── README.md
+└── README.en.md
 ```
 
 ---
@@ -119,34 +138,16 @@ sudo systemctl daemon-reload
 
 See the full guide at [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
-### Common Issues
-
-**Display shows nothing:**
-```bash
-# Check if device was detected
-lsusb | grep -i "3633"
-
-# Check permissions
-ls -la /dev/hidraw*
-```
-
-**Error "module 'hid' has no attribute 'device'":**
-```bash
-# Reinstall correct library
-python3.11 -m pip uninstall -y hid
-python3.11 -m pip install --user --force-reinstall hidapi
-```
-
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
+Contributions are welcome!
 
 1. Fork the project
-2. Create a branch for your feature (`git checkout -b feature/NewFeature`)
+2. Create a branch (`git checkout -b feature/NewFeature`)
 3. Commit your changes (`git commit -m 'Add NewFeature'`)
-4. Push to branch (`git push origin feature/NewFeature`)
+4. Push (`git push origin feature/NewFeature`)
 5. Open a Pull Request
 
 ---
@@ -155,10 +156,10 @@ Contributions are welcome! Feel free to:
 
 - **Original project:** [raghulkrishna/deepcool-ak620-digital-linux](https://github.com/raghulkrishna/deepcool-ak620-digital-linux)
 - **HID Protocol:** [Algorithm0/deepcool-digital-info](https://github.com/Algorithm0/deepcool-digital-info)
-- **Regata OS Adaptation:** [marquimRcc](https://github.com/marquimRcc)
+- **Regata OS Adaptation / System Tray:** [marquimRcc](https://github.com/marquimRcc)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
