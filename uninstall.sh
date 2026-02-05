@@ -12,6 +12,7 @@ N='\033[0m'
 
 APP_NAME="deepcool-digital"
 INSTALL_DIR="$HOME/.local/share/$APP_NAME"
+CONFIG_DIR="$HOME/.config/$APP_NAME"
 AUTOSTART_DIR="$HOME/.config/autostart"
 
 echo -e "${Y}"
@@ -23,8 +24,8 @@ EOF
 echo -e "${N}"
 
 echo -e "  ${C}▶${N} Encerrando aplicativo..."
-pkill -f "python3.11.*$APP_NAME.*main.py" 2>/dev/null || true
-pkill -f "python3.11.*deepcool-tray.py" 2>/dev/null || true
+# Matar todas as instâncias do aplicativo (qualquer versão do Python)
+pkill -f "python.*$APP_NAME.*main.py" 2>/dev/null || true
 sleep 1
 
 echo -e "  ${C}▶${N} Removendo serviços systemd antigos (se existirem)..."
@@ -42,6 +43,9 @@ sudo udevadm control --reload-rules 2>/dev/null || true
 
 echo -e "  ${C}▶${N} Removendo arquivos instalados..."
 rm -rf "$INSTALL_DIR"
+
+echo -e "  ${C}▶${N} Removendo arquivos de configuração..."
+rm -rf "$CONFIG_DIR"
 
 echo -e "  ${C}▶${N} Removendo lock file..."
 rm -f "/tmp/$APP_NAME.lock"

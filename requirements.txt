@@ -1,0 +1,11 @@
+# DeepCool AK Series Digital - Dependências Python
+# Compatível com Python 3.8+
+
+# Interface gráfica Qt5
+PyQt5>=5.15.0
+
+# Comunicação HID com dispositivos USB
+hidapi>=0.12.0
+
+# Monitoramento de hardware e sensores
+psutil>=5.9.0

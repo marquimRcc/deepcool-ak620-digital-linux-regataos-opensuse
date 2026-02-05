@@ -18,36 +18,64 @@ Baseado em:
   - Issue #9 (Tasshack): protocolo HID decodificado
 """
 
+from typing import Literal
+
 # Modos do byte[1]
-MODE_CELSIUS = 19
-MODE_FAHRENHEIT = 35
-MODE_PERCENT = 76
-MODE_INIT = 170
+MODE_CELSIUS: int = 19
+MODE_FAHRENHEIT: int = 35
+MODE_PERCENT: int = 76
+MODE_INIT: int = 170
+
+# Type alias para modos válidos
+DisplayMode = Literal["temp_c", "temp_f", "util", "start"]
 
 
-def get_bar_value(input_value):
-    """Calcula valor da barra do topo (0-10)."""
+def get_bar_value(input_value: int) -> int:
+    """
+    Calcula valor da barra do topo (0-10).
+    
+    Args:
+        input_value: Valor de entrada (0-100)
+        
+    Returns:
+        Valor da barra (0-10)
+        
+    Example:
+        >>> get_bar_value(0)
+        0
+        >>> get_bar_value(15)
+        2
+        >>> get_bar_value(100)
+        10
+    """
     if input_value <= 0:
         return 0
-    return (input_value - 1) // 10 + 1
+    return min((input_value - 1) // 10 + 1, 10)
 
 
-def build_packet(value=0, mode="util", alarm=False):
+def build_packet(value: int = 0, mode: DisplayMode = "util", alarm: bool = False) -> list[int]:
     """
     Constrói pacote HID de 64 bytes.
 
     Args:
         value: Valor numérico para exibir (0-999)
-        mode: "temp_c", "temp_f", "util" ou "start"
+        mode: Modo de exibição ("temp_c", "temp_f", "util" ou "start")
         alarm: True para piscar o display
     
     Returns:
-        list: Pacote de 64 bytes
+        Pacote de 64 bytes como lista de inteiros
+        
+    Example:
+        >>> packet = build_packet(25, "temp_c", False)
+        >>> len(packet)
+        64
+        >>> packet[0]
+        16
     """
-    data = [16] + [0] * 63
+    data: list[int] = [16] + [0] * 63
 
     # Modo
-    mode_map = {
+    mode_map: dict[DisplayMode, int] = {
         "temp_c": MODE_CELSIUS,
         "temp_f": MODE_FAHRENHEIT,
         "util": MODE_PERCENT,
@@ -59,11 +87,14 @@ def build_packet(value=0, mode="util", alarm=False):
     if mode == "start":
         return data
 
+    # Limitar valor entre 0 e 999
+    clamped_value: int = max(0, min(999, value))
+
     # Barra
-    data[2] = get_bar_value(value)
+    data[2] = get_bar_value(clamped_value)
 
     # Dígitos
-    numbers = [int(c) for c in str(max(0, min(999, value)))]
+    numbers: list[int] = [int(c) for c in str(clamped_value)]
     if len(numbers) == 1:
         data[5] = numbers[0]
     elif len(numbers) == 2:

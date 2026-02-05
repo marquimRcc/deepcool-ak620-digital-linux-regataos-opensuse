@@ -2,20 +2,21 @@
 """Configuração e constantes globais."""
 
 from pathlib import Path
+from typing import Dict
 
 # Versão
-VERSION = "1.1.0"
-APP_NAME = "deepcool-digital"
-APP_DISPLAY_NAME = "DeepCool Digital"
+VERSION: str = "1.3.0"
+APP_NAME: str = "deepcool-digital"
+APP_DISPLAY_NAME: str = "DeepCool Digital"
 
 # USB
-VENDOR_ID = 0x3633
+VENDOR_ID: int = 0x3633
 
 # Display
-INTERVAL = 2  # segundos entre atualizações
+INTERVAL: int = 2  # segundos entre atualizações
 
 # Modelos conhecidos
-KNOWN_MODELS = {
+KNOWN_MODELS: Dict[int, str] = {
     0x0001: "AK620 Digital",
     0x0002: "AK620 Digital",
     0x0003: "AK500 Digital",
@@ -25,12 +26,15 @@ KNOWN_MODELS = {
 }
 
 # Temperaturas de alarme disponíveis (Celsius)
-ALARM_TEMPS = [60, 70, 80, 90]
+ALARM_TEMPS: list[int] = [60, 70, 80, 90]
 
 # Caminhos
-AUTOSTART_DIR = Path.home() / ".config" / "autostart"
-AUTOSTART_FILE = AUTOSTART_DIR / f"{APP_NAME}.desktop"
-LOCK_FILE = f"/tmp/{APP_NAME}.lock"
+CONFIG_DIR: Path = Path.home() / ".config" / APP_NAME
+AUTOSTART_DIR: Path = Path.home() / ".config" / "autostart"
+AUTOSTART_FILE: Path = AUTOSTART_DIR / f"{APP_NAME}.desktop"
+LOCK_FILE: str = f"/tmp/{APP_NAME}.lock"
+LOG_FILE: Path = CONFIG_DIR / f"{APP_NAME}.log"
+SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
 
 # GitHub
-GITHUB_URL = "https://github.com/marquimRcc/deepcool-ak620-digital-linux-regataos-opensuse"
+GITHUB_URL: str = "https://github.com/marquimRcc/deepcool-ak620-digital-linux-regataos-opensuse"
