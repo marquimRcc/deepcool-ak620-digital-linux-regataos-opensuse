@@ -145,7 +145,7 @@ def find_motherboard_argb_device() -> Optional[int]:
 # ──────────────────────────────────────────────────────────────
 # Aplicar cores
 # ──────────────────────────────────────────────────────────────
-def set_color(hex_color: str, device_id: Optional[int] = None) -> bool:
+def set_color(hex_color: str, device_id: Optional[int] = None, zone_id: Optional[int] = None, led_count: Optional[int] = None) -> bool:
     """
     Define uma cor estática nas LEDs ARGB.
 
@@ -171,19 +171,27 @@ def set_color(hex_color: str, device_id: Optional[int] = None) -> bool:
         logger.warning("Nenhum dispositivo RGB encontrado")
         return False
 
-    output = _run_openrgb(
-        "--noautoconnect",
-        "-d", str(device_id),
-        "-m", "Static",
-        "-c", color,
-    )
+    args = ["--noautoconnect", "-d", str(device_id)]
+    if zone_id is not None:
+        args += ["-z", str(zone_id)]
+    if led_count is not None:
+        args += ["-sz", str(led_count)]
+
+    # Para headers ARGB (D_LED), normalmente é necessário definir o tamanho da zone
+    # e usar modo Direct para refletir a cor imediatamente.
+    mode = "Direct" if (zone_id is not None or led_count is not None) else "Static"
+    args += ["-m", mode, "-c", color]
+
+    output = _run_openrgb(*args)
     if output is not None:
-        logger.info(f"Cor #{color} aplicada ao dispositivo {device_id}")
+        logger.info(
+            f"Cor #{color} aplicada ao dispositivo {device_id}" + (f" (zone {zone_id}, leds {led_count})" if (zone_id is not None or led_count is not None) else "")
+        )
         return True
     return False
 
 
-def set_rainbow(device_id: Optional[int] = None) -> bool:
+def set_rainbow(device_id: Optional[int] = None, zone_id: Optional[int] = None, led_count: Optional[int] = None) -> bool:
     """
     Define o modo arco-íris nas LEDs ARGB.
 
@@ -200,11 +208,13 @@ def set_rainbow(device_id: Optional[int] = None) -> bool:
 
     for mode in ["Spectrum Cycle", "Rainbow", "Rainbow Wave",
                  "Color Cycle", "Breathing"]:
-        output = _run_openrgb(
-            "--noautoconnect",
-            "-d", str(device_id),
-            "-m", mode,
-        )
+        args = ["--noautoconnect", "-d", str(device_id)]
+        if zone_id is not None:
+            args += ["-z", str(zone_id)]
+        if led_count is not None:
+            args += ["-sz", str(led_count)]
+        args += ["-m", mode]
+        output = _run_openrgb(*args)
         if output is not None:
             logger.info(f"Modo {mode} aplicado ao dispositivo {device_id}")
             return True
@@ -213,13 +223,16 @@ def set_rainbow(device_id: Optional[int] = None) -> bool:
     return False
 
 
-def set_off(device_id: Optional[int] = None) -> bool:
+def set_off(device_id: Optional[int] = None, zone_id: Optional[int] = None, led_count: Optional[int] = None) -> bool:
     """Desliga as LEDs ARGB (cor preta)."""
-    return set_color("#000000", device_id)
+    return set_color("#000000", device_id, zone_id, led_count)
 
 
 def apply_color_setting(
-    color_value: str, device_id: Optional[int] = None
+    color_value: str,
+    device_id: Optional[int] = None,
+    zone_id: Optional[int] = None,
+    led_count: Optional[int] = None,
 ) -> bool:
     """
     Aplica a configuração de cor salva.
@@ -232,11 +245,11 @@ def apply_color_setting(
         True se aplicado com sucesso.
     """
     if color_value == COLOR_RAINBOW:
-        return set_rainbow(device_id)
+        return set_rainbow(device_id, zone_id, led_count)
     elif color_value == COLOR_OFF:
-        return set_off(device_id)
+        return set_off(device_id, zone_id, led_count)
     else:
-        return set_color(color_value, device_id)
+        return set_color(color_value, device_id, zone_id, led_count)
 
 
 def validate_color(color_value: str) -> bool:

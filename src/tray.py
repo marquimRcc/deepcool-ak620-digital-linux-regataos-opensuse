@@ -134,6 +134,12 @@ class DeepCoolTray:
         self._openrgb_device_id: Optional[int] = saved.get(
             'openrgb_device_id', None
         )
+        self._openrgb_zone_id: Optional[int] = saved.get(
+            'openrgb_zone_id', None
+        )
+        self._openrgb_led_count: Optional[int] = saved.get(
+            'openrgb_led_count', None
+        )
 
         # Aplicar cor salva ao iniciar (sem bloquear startup)
         self._apply_led_color_async()
@@ -161,6 +167,8 @@ class DeepCoolTray:
         current_settings = self.driver.get_settings()
         current_settings['led_color'] = self._led_color
         current_settings['openrgb_device_id'] = self._openrgb_device_id
+        current_settings['openrgb_zone_id'] = self._openrgb_zone_id
+        current_settings['openrgb_led_count'] = self._openrgb_led_count
         if self.settings_manager.save(current_settings):
             logger.info("Configurações salvas com sucesso")
         else:
