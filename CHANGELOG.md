@@ -1,5 +1,44 @@
 # Changelog - DeepCool AK Series Digital
 
+## [1.4.0] - 2026-02-16
+
+### ✨ Novas Funcionalidades
+
+#### 🎨 Controle de Cores da Borda LED ARGB
+- **Novo módulo `src/colors.py`** — Integração com OpenRGB via CLI
+- **Submenu "🎨 Cor da borda"** no menu de contexto do system tray
+- 9 cores predefinidas com ícones coloridos (Vermelho, Azul, Verde, Roxo, Ciano, Amarelo, Laranja, Branco, Rosa)
+- Modo **Arco-íris** — animação que alterna entre todas as cores
+- Modo **Desligado** — apaga completamente as LEDs
+- **"Personalizar..."** — abre QColorDialog nativo do Qt para escolher qualquer cor
+- Cor escolhida **persistida automaticamente** em `settings.json`
+- Cor reaplicada automaticamente ao iniciar o aplicativo (em background, sem bloquear)
+- Detecção automática do dispositivo ARGB da placa-mãe via OpenRGB
+- **Degradação graciosa** — se OpenRGB não instalado, menu fica desabilitado mas app funciona normalmente
+
+#### 📦 Instalação do OpenRGB
+- **Nova Etapa 5** no `install.sh` — pergunta ao usuário se deseja instalar o OpenRGB
+- Suporte a instalação via zypper, apt, dnf, pacman e Flatpak
+- Wrapper automático para Flatpak (`/usr/local/bin/openrgb`)
+
+### 🎯 Melhorias
+
+#### 🔧 Settings expandido
+- `settings.json` agora salva `led_color` e `openrgb_device_id`
+- Validação de cor hex e modos especiais (rainbow, off)
+- Retrocompatível com settings da v1.3.0
+
+#### 🌍 Traduções
+- Novas chaves i18n para cores (PT e EN)
+- Nomes das cores, labels de menu e título do QColorDialog traduzidos
+
+#### 📚 Documentação
+- READMEs (PT e EN) atualizados com seção completa sobre controle de cores
+- Tabela de troubleshooting para problemas com LED
+- Diagrama de arquitetura do fluxo de cores
+
+---
+
 ## [1.3.0] - 2026-02-05
 
 ### ✨ Novas Funcionalidades
@@ -114,6 +153,7 @@ git pull origin main
 
 ## Créditos
 
+**Versão 1.4.0:** Controle de cores LED ARGB via OpenRGB  
 **Versão 1.3.0:** Implementada por Manus AI  
 **Versão 1.2.0:** Implementada por Manus AI  
 **Projeto original:** [marquimRcc](https://github.com/marquimRcc)

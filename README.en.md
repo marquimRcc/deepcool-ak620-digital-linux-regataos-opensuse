@@ -17,6 +17,7 @@ System tray application for DeepCool AK Series Digital coolers on **Regata OS** 
 - 🔄 **Auto-switches** between Temperature and CPU Usage on display
 - 🌡️ **Celsius and Fahrenheit** selectable from menu
 - ⏰ **Alarm control** — display blinks when temperature threshold is reached
+- 🎨 **LED color control** — change the ARGB border colors via OpenRGB
 - 🚀 **Autostart** — launches with KDE Plasma
 - 🌍 **Auto language** — Portuguese or English based on system locale
 - 🔧 **Auto-detection** of hardware and sensors
@@ -41,8 +42,9 @@ System tray application for DeepCool AK Series Digital coolers on **Regata OS** 
 
 - Regata OS or openSUSE (Tumbleweed/Leap)
 - KDE Plasma
-- Python 3.11
+- Python 3.8+
 - DeepCool cooler connected via USB
+- **OpenRGB** *(optional — only needed for LED border color control)*
 
 ### Quick Install
 
@@ -54,13 +56,75 @@ chmod +x install.sh
 ```
 
 The installer will:
-1. Install Python 3.11, PyQt5, and dependencies
+1. Install Python 3, PyQt5, and dependencies
 2. Fix the HID library conflict on openSUSE
 3. Configure USB permissions (udev)
-4. Ask if you want to launch at startup
-5. Start the application
+4. **Ask if you want to install OpenRGB** (for LED color control)
+5. Ask if you want to launch at startup
+6. Start the application
 
-After installation, the **DeepCool Digital** icon will appear in the KDE system tray.
+---
+
+## 🎨 LED Border Color Control
+
+The DeepCool AK Series Digital cooler has **ARGB LED strips** on the top and bottom edges of the display. These LEDs are connected to the **motherboard's 3-pin ARGB header** and can be controlled through [OpenRGB](https://openrgb.org/).
+
+### How it works
+
+```
+Your App (tray.py)  →  src/colors.py  →  OpenRGB CLI  →  Motherboard  →  ARGB LEDs
+```
+
+The app calls OpenRGB via command line to apply colors. No need to keep OpenRGB running in the background.
+
+### Installing OpenRGB
+
+The installer will ask automatically. To install manually:
+
+```bash
+# openSUSE / Regata OS
+sudo zypper install openrgb
+
+# Flatpak (any distro)
+flatpak install flathub org.openrgb.OpenRGB
+```
+
+> ⚠️ If OpenRGB is not installed, the "Border color" menu will be disabled, but all other features work normally.
+
+### Color menu
+
+Right-click the tray icon and open **🎨 Border color**:
+
+```
+🎨 Border color          ►  🔴 Red         ✓
+                             🔵 Blue
+                             🟢 Green
+                             🟣 Purple
+                             🔵 Cyan
+                             🟡 Yellow
+                             🟠 Orange
+                             ⚪ White
+                             🩷 Pink
+                             🌈 Rainbow
+                             ⚫ Off
+                             ─────────────
+                             🎨 Customize...
+```
+
+- **9 quick colors** — Instant selection with colored icons
+- **Rainbow** — Animated color cycling mode
+- **Off** — Turns off the LEDs
+- **Customize...** — Opens full color picker (QColorDialog) for any color
+
+Your color choice is **saved automatically** and reapplied when the app starts.
+
+### Troubleshooting LED colors
+
+| Issue | Solution |
+|-------|----------|
+| Menu is disabled | Install OpenRGB: `sudo zypper install openrgb` |
+| No devices detected | Run `sudo openrgb --list-devices` — may need `sudo modprobe i2c-dev` |
+| Colors don't change | Check if the 3-pin ARGB cable is connected to the motherboard header |
 
 ---
 
@@ -74,13 +138,11 @@ After installation, the **DeepCool Digital** icon will appear in the KDE system 
   🌡️ 30°C │ 📊 4%            ← updates in real-time
   ✅ Connected
   ─────────────────
-  Display Switch          ►  ○ Temperature
-                             ○ Utilization
-                             ● Automatic
-  Temperature Display     ►  ● Celsius (°C)
-                             ○ Fahrenheit (°F)
-  Alarm Control           ►  ● Off
-                             ○ 60°C / 70°C / 80°C / 90°C
+  Display Switch          ►  ○ Temperature  ○ Utilization  ● Automatic
+  Temperature Display     ►  ● Celsius (°C)  ○ Fahrenheit (°F)
+  Alarm Control           ►  ● Off  ○ 60°C / 70°C / 80°C / 90°C
+  ─────────────────
+  🎨 Border color          ►  9 colors + Rainbow + Customize...
   ─────────────────
   ☐ Launch at startup
   Support                 ►  Website / Version
@@ -88,10 +150,6 @@ After installation, the **DeepCool Digital** icon will appear in the KDE system 
   Restart
   Exit
 ```
-
-### Tooltip
-
-Hover over the icon to see temperature and CPU usage.
 
 ### Dynamic Icon
 
@@ -116,7 +174,9 @@ The tray icon changes color based on temperature:
 ├── main.py              # Entry point
 ├── install.sh           # Installer
 ├── uninstall.sh         # Uninstaller
+├── requirements.txt     # Python dependencies
 ├── src/
+│   ├── __init__.py      # Python package
 │   ├── config.py        # Constants and configuration
 │   ├── i18n.py          # Translations (PT/EN)
 │   ├── hardware.py      # Hardware detection
@@ -124,9 +184,14 @@ The tray icon changes color based on temperature:
 │   ├── driver.py        # USB communication thread
 │   ├── icons.py         # Icon generation
 │   ├── autostart.py     # KDE autostart
+│   ├── settings.py      # Settings persistence
+│   ├── utils.py         # Utility functions
+│   ├── colors.py        # ARGB LED color control (via OpenRGB)
 │   └── tray.py          # System tray interface
 ├── docs/
 │   └── TROUBLESHOOTING.md
+├── CHANGELOG.md
+├── INSTALL_GUIDE.md
 ├── LICENSE
 ├── README.md
 └── README.en.md
@@ -156,6 +221,7 @@ Contributions are welcome!
 
 - **Original project:** [raghulkrishna/deepcool-ak620-digital-linux](https://github.com/raghulkrishna/deepcool-ak620-digital-linux)
 - **HID Protocol:** [Algorithm0/deepcool-digital-info](https://github.com/Algorithm0/deepcool-digital-info)
+- **LED control:** [OpenRGB](https://openrgb.org/)
 - **Regata OS Adaptation / System Tray:** [marquimRcc](https://github.com/marquimRcc)
 
 ---

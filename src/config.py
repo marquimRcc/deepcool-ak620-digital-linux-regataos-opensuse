@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict
 
 # Versão
-VERSION: str = "1.3.0"
+VERSION: str = "1.4.0"
 APP_NAME: str = "deepcool-digital"
 APP_DISPLAY_NAME: str = "DeepCool Digital"
 

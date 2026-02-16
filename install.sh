@@ -76,14 +76,11 @@ if [ -z "$PYTHON_CMD" ]; then
     
     # Detectar distribuição
     if command -v zypper &>/dev/null; then
-        # openSUSE/Regata OS
         sudo zypper install -y python3 python3-pip
     elif command -v apt &>/dev/null; then
-        # Debian/Ubuntu
         sudo apt update
         sudo apt install -y python3 python3-pip python3-venv
     elif command -v dnf &>/dev/null; then
-        # Fedora
         sudo dnf install -y python3 python3-pip
     else
         err "Gerenciador de pacotes não suportado. Instale Python 3.8+ manualmente."
@@ -113,24 +110,18 @@ echo -e "\n${B}═══ ETAPA 2: Instalando Dependências ═══${N}\n"
 
 # Detectar distribuição para instalar PyQt5
 if command -v zypper &>/dev/null; then
-    # openSUSE/Regata OS
     info "Detectado: openSUSE/Regata OS"
     
-    # PyQt5
     if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
         info "Instalando PyQt5..."
-        
-        # Tentar instalar pacote específico da versão
         PYTHON_VER_SHORT=$(echo "$PYTHON_VERSION" | cut -d'.' -f1,2 | tr -d '.')
         if ! sudo zypper install -y "python${PYTHON_VER_SHORT}-qt5" 2>/dev/null; then
-            # Fallback para pacote genérico
             sudo zypper install -y python3-qt5 python3-qt5-sip
         fi
     fi
     ok "PyQt5"
     
 elif command -v apt &>/dev/null; then
-    # Debian/Ubuntu
     info "Detectado: Debian/Ubuntu"
     
     if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
@@ -140,7 +131,6 @@ elif command -v apt &>/dev/null; then
     ok "PyQt5"
     
 elif command -v dnf &>/dev/null; then
-    # Fedora
     info "Detectado: Fedora"
     
     if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
@@ -152,10 +142,9 @@ else
     warn "Distribuição não reconhecida. Tentando instalar via pip..."
 fi
 
-# Instalar dependências via pip (requirements.txt)
+# Instalar dependências via pip
 info "Instalando dependências Python..."
 
-# Garantir que pip está disponível
 if ! "$PYTHON_CMD" -m pip --version &>/dev/null; then
     info "Instalando pip..."
     "$PYTHON_CMD" -m ensurepip --default-pip 2>/dev/null || true
@@ -164,15 +153,12 @@ fi
 # Remover conflito do pacote hid (openSUSE)
 "$PYTHON_CMD" -m pip uninstall -y hid 2>/dev/null || true
 
-# Instalar via requirements.txt
 if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
     "$PYTHON_CMD" -m pip install --user -r "$SCRIPT_DIR/requirements.txt" -q
 else
-    # Fallback: instalar manualmente
     "$PYTHON_CMD" -m pip install --user hidapi psutil -q
 fi
 
-# Verificar instalação do hidapi
 if "$PYTHON_CMD" -c "import hid; hid.device()" 2>/dev/null; then
     ok "hidapi (biblioteca HID corrigida)"
 else
@@ -214,7 +200,75 @@ sudo udevadm trigger
 ok "Regras udev configuradas"
 
 ##############################################################################
-echo -e "\n${B}═══ ETAPA 5: Instalando Aplicativo ═══${N}\n"
+echo -e "\n${B}═══ ETAPA 5: OpenRGB — Controle de Cores LED (opcional) ═══${N}\n"
+##############################################################################
+
+if command -v openrgb &> /dev/null; then
+    OPENRGB_VER=$(openrgb --version 2>/dev/null | head -n1 || echo "desconhecida")
+    ok "OpenRGB já instalado: ${OPENRGB_VER}"
+else
+    echo -e "  O ${W}OpenRGB${N} permite controlar as ${W}cores das fitas LED ARGB${N}"
+    echo -e "  na borda do display do cooler."
+    echo ""
+    echo -e "  Sem ele, o menu ${W}'🎨 Cor da borda'${N} ficará desabilitado,"
+    echo -e "  mas todas as outras funções continuam normalmente."
+    echo ""
+    read -p "  Deseja instalar o OpenRGB? (s/N): " INSTALL_OPENRGB
+    echo ""
+
+    case "$INSTALL_OPENRGB" in
+        [sS]|[yY]|[sS][iI][mM]|[yY][eE][sS])
+            info "Instalando OpenRGB..."
+
+            OPENRGB_INSTALLED=false
+
+            if command -v zypper &>/dev/null; then
+                if sudo zypper install -y openrgb 2>/dev/null; then
+                    OPENRGB_INSTALLED=true
+                fi
+            elif command -v apt &>/dev/null; then
+                sudo apt update -qq
+                if sudo apt install -y openrgb 2>/dev/null; then
+                    OPENRGB_INSTALLED=true
+                fi
+            elif command -v dnf &>/dev/null; then
+                if sudo dnf install -y openrgb 2>/dev/null; then
+                    OPENRGB_INSTALLED=true
+                fi
+            elif command -v pacman &>/dev/null; then
+                if sudo pacman -S --noconfirm openrgb 2>/dev/null; then
+                    OPENRGB_INSTALLED=true
+                fi
+            fi
+
+            # Tentar Flatpak se pacote nativo falhou
+            if [ "$OPENRGB_INSTALLED" = false ] && command -v flatpak &>/dev/null; then
+                info "Tentando via Flatpak..."
+                if flatpak install -y flathub org.openrgb.OpenRGB 2>/dev/null; then
+                    sudo bash -c 'echo "#!/bin/bash
+flatpak run org.openrgb.OpenRGB \"\$@\"" > /usr/local/bin/openrgb'
+                    sudo chmod +x /usr/local/bin/openrgb
+                    OPENRGB_INSTALLED=true
+                    ok "OpenRGB instalado via Flatpak"
+                fi
+            fi
+
+            if [ "$OPENRGB_INSTALLED" = true ]; then
+                ok "OpenRGB instalado com sucesso"
+            else
+                warn "Não foi possível instalar automaticamente."
+                echo -e "  Instale manualmente: ${C}https://openrgb.org/#downloads${N}"
+            fi
+            ;;
+        *)
+            info "OpenRGB não instalado. Menu 'Cor da borda' ficará desabilitado."
+            echo -e "  Instale depois com: ${C}sudo zypper install openrgb${N}"
+            ;;
+    esac
+fi
+
+##############################################################################
+echo -e "\n${B}═══ ETAPA 6: Instalando Aplicativo ═══${N}\n"
 ##############################################################################
 
 info "Removendo serviços systemd antigos (se existirem)..."
@@ -234,7 +288,7 @@ chmod +x "$INSTALL_DIR/main.py"
 ok "Aplicativo instalado em $INSTALL_DIR"
 
 ##############################################################################
-echo -e "\n${B}═══ ETAPA 6: Autostart no KDE ═══${N}\n"
+echo -e "\n${B}═══ ETAPA 7: Autostart no KDE ═══${N}\n"
 ##############################################################################
 
 echo -e "  ${W}Deseja iniciar automaticamente com o sistema?${N}"
@@ -266,7 +320,7 @@ else
 fi
 
 ##############################################################################
-echo -e "\n${B}═══ ETAPA 7: Iniciando ═══${N}\n"
+echo -e "\n${B}═══ ETAPA 8: Iniciando ═══${N}\n"
 ##############################################################################
 
 info "Iniciando DeepCool Digital..."
@@ -294,6 +348,12 @@ echo -e "${G}╚═════════════════════�
 echo ""
 echo -e "  O ícone ${C}DeepCool Digital${N} deve aparecer na bandeja do KDE."
 echo -e "  Clique com o ${W}botão direito${N} para acessar as opções."
+
+if command -v openrgb &>/dev/null; then
+    echo ""
+    echo -e "  🎨 Menu ${W}'Cor da borda'${N} disponível para controlar as LEDs!"
+fi
+
 echo ""
 echo -e "${B}╔═══════════════════════════════════════════════════════════════════════╗${N}"
 echo -e "${B}║${N} ${W}Comandos úteis:${N}                                                        ${B}║${N}"

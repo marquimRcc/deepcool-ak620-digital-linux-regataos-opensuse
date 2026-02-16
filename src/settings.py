@@ -20,6 +20,8 @@ class SettingsManager:
         'temp_unit': 'C',
         'alarm_enabled': False,
         'alarm_temp': 80,
+        'led_color': '#FF0000',
+        'openrgb_device_id': None,
     }
     
     def __init__(self, settings_file: Optional[Path] = None):
@@ -133,7 +135,7 @@ class SettingsManager:
             if isinstance(settings['alarm_enabled'], bool):
                 validated['alarm_enabled'] = settings['alarm_enabled']
             else:
-                logger.warning(f"alarm_enabled inválido, usando padrão")
+                logger.warning("alarm_enabled inválido, usando padrão")
         
         # alarm_temp
         if 'alarm_temp' in settings:
@@ -142,6 +144,25 @@ class SettingsManager:
                 validated['alarm_temp'] = int(temp)
             else:
                 logger.warning(f"alarm_temp inválido: {temp}, usando padrão")
+        
+        # led_color
+        if 'led_color' in settings:
+            from .colors import validate_color
+            color = settings['led_color']
+            if isinstance(color, str) and validate_color(color):
+                validated['led_color'] = color
+            else:
+                logger.warning(f"led_color inválido: {color}, usando padrão")
+        
+        # openrgb_device_id
+        if 'openrgb_device_id' in settings:
+            dev_id = settings['openrgb_device_id']
+            if dev_id is None or (isinstance(dev_id, int) and dev_id >= 0):
+                validated['openrgb_device_id'] = dev_id
+            else:
+                logger.warning(
+                    f"openrgb_device_id inválido: {dev_id}, usando padrão"
+                )
         
         return validated
     
@@ -178,7 +199,9 @@ class SettingsManager:
         try:
             if self.settings_file.exists():
                 self.settings_file.unlink()
-                logger.info(f"Arquivo de configurações removido: {self.settings_file}")
+                logger.info(
+                    f"Arquivo de configurações removido: {self.settings_file}"
+                )
                 return True
             return True
         except Exception as e:

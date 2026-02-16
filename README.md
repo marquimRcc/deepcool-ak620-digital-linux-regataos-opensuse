@@ -17,6 +17,7 @@ Aplicativo system tray para coolers DeepCool da série AK Digital no **Regata OS
 - 🔄 **Alterna automaticamente** entre Temperatura e Uso de CPU no display
 - 🌡️ **Celsius e Fahrenheit** selecionáveis pelo menu
 - ⏰ **Controle de alarme** — display pisca ao atingir temperatura definida
+- 🎨 **Controle de cores LED** — mude as cores da borda ARGB do display via OpenRGB
 - 🚀 **Autostart** — inicia junto com o KDE Plasma
 - 🌍 **Idioma automático** — Português ou Inglês conforme o sistema
 - 🔧 **Detecção automática** de hardware e sensores
@@ -41,8 +42,9 @@ Aplicativo system tray para coolers DeepCool da série AK Digital no **Regata OS
 
 - Regata OS ou openSUSE (Tumbleweed/Leap)
 - KDE Plasma
-- Python 3.11
+- Python 3.8+
 - Cooler DeepCool conectado via USB
+- **OpenRGB** *(opcional — necessário para controlar as cores da borda LED)*
 
 ### Instalação Rápida
 
@@ -54,13 +56,81 @@ chmod +x install.sh
 ```
 
 O instalador irá:
-1. Instalar Python 3.11, PyQt5 e dependências
+1. Instalar Python 3, PyQt5 e dependências
 2. Corrigir o conflito da biblioteca HID no openSUSE
 3. Configurar permissões USB (udev)
-4. Perguntar se deseja iniciar automaticamente com o sistema
-5. Iniciar o aplicativo
+4. **Perguntar se deseja instalar o OpenRGB** (para controle de cores LED)
+5. Perguntar se deseja iniciar automaticamente com o sistema
+6. Iniciar o aplicativo
 
 Após a instalação, o ícone **DeepCool Digital** aparecerá na bandeja do KDE.
+
+---
+
+## 🎨 Controle de Cores da Borda LED
+
+O cooler DeepCool AK Series Digital possui fitas **LED ARGB** nas bordas superior e inferior do display. Essas LEDs são conectadas ao **header ARGB 3-pin da placa-mãe** e podem ser controladas pelo aplicativo através do [OpenRGB](https://openrgb.org/).
+
+### Como funciona
+
+```
+Seu App (tray.py)  →  src/colors.py  →  OpenRGB CLI  →  Placa-mãe  →  LEDs ARGB
+```
+
+O app chama o OpenRGB via linha de comando para aplicar as cores. Não precisa manter o OpenRGB rodando em segundo plano.
+
+### Instalando o OpenRGB
+
+O instalador pergunta automaticamente. Para instalar manualmente:
+
+```bash
+# openSUSE / Regata OS
+sudo zypper install openrgb
+
+# Flatpak (qualquer distro)
+flatpak install flathub org.openrgb.OpenRGB
+
+# AppImage / Manual
+# Baixe em https://openrgb.org/#downloads
+```
+
+> ⚠️ Se o OpenRGB não estiver instalado, o menu "Cor da borda" ficará desabilitado, mas todas as outras funções continuam normalmente.
+
+### Menu de cores
+
+Clique com o botão direito no ícone e acesse **🎨 Cor da borda**:
+
+```
+🎨 Cor da borda          ►  🔴 Vermelho    ✓
+                             🔵 Azul
+                             🟢 Verde
+                             🟣 Roxo
+                             🔵 Ciano
+                             🟡 Amarelo
+                             🟠 Laranja
+                             ⚪ Branco
+                             🩷 Rosa
+                             🌈 Arco-íris
+                             ⚫ Desligado
+                             ─────────────
+                             🎨 Personalizar...
+```
+
+- **9 cores rápidas** — Seleção instantânea com ícones coloridos
+- **Arco-íris** — Modo animado que alterna entre cores
+- **Desligado** — Apaga as LEDs
+- **Personalizar...** — Abre seletor de cores completo (QColorDialog) para qualquer cor
+
+A cor escolhida é **salva automaticamente** e reaplicada ao iniciar o app.
+
+### Problemas com cores LED
+
+| Problema | Solução |
+|----------|---------|
+| Menu desabilitado | Instale o OpenRGB: `sudo zypper install openrgb` |
+| Não detecta dispositivos | `sudo openrgb --list-devices` — pode precisar de `sudo modprobe i2c-dev` |
+| Cores não mudam | Verifique se o cabo ARGB 3-pin está conectado ao header da placa-mãe |
+| Apenas algumas cores funcionam | Verifique [compatibilidade](https://openrgb.org/devices) da sua placa-mãe |
 
 ---
 
@@ -74,24 +144,18 @@ Após a instalação, o ícone **DeepCool Digital** aparecerá na bandeja do KDE
   🌡️ 30°C │ 📊 4%            ← atualiza em tempo real
   ✅ Conectado
   ─────────────────
-  Chave de exibição       ►  ○ Temperatura
-                             ○ Utilização
-                             ● Automático
-  Mostrador de temperatura ►  ● Celsius (°C)
-                              ○ Fahrenheit (°F)
-  Controle de alarme       ►  ● Desligado
-                              ○ 60°C / 70°C / 80°C / 90°C
+  Exibir                  ►  ○ Temperatura  ○ Uso de CPU  ● Automático
+  Mostrador de temperatura ►  ● Celsius (°C)  ○ Fahrenheit (°F)
+  Controle de alarme       ►  ● Desligado  ○ 60°C / 70°C / 80°C / 90°C
+  ─────────────────
+  🎨 Cor da borda          ►  9 cores + Arco-íris + Personalizar...
   ─────────────────
   ☐ Executar na inicialização
   Suporte                  ►  Website / Versão
   ─────────────────
-  Reinicialização
-  Saída
+  Reiniciar
+  Sair
 ```
-
-### Tooltip
-
-Passe o mouse sobre o ícone para ver temperatura e uso de CPU.
 
 ### Ícone dinâmico
 
@@ -116,7 +180,9 @@ O ícone na bandeja muda de cor conforme a temperatura:
 ├── main.py              # Ponto de entrada
 ├── install.sh           # Instalador
 ├── uninstall.sh         # Desinstalador
+├── requirements.txt     # Dependências Python
 ├── src/
+│   ├── __init__.py      # Pacote Python
 │   ├── config.py        # Constantes e configuração
 │   ├── i18n.py          # Traduções (PT/EN)
 │   ├── hardware.py      # Detecção de hardware
@@ -124,9 +190,14 @@ O ícone na bandeja muda de cor conforme a temperatura:
 │   ├── driver.py        # Thread de comunicação USB
 │   ├── icons.py         # Geração de ícones
 │   ├── autostart.py     # Autostart no KDE
+│   ├── settings.py      # Persistência de configurações
+│   ├── utils.py         # Funções utilitárias
+│   ├── colors.py        # Controle de cores LED ARGB (via OpenRGB)
 │   └── tray.py          # Interface system tray
 ├── docs/
 │   └── TROUBLESHOOTING.md
+├── CHANGELOG.md
+├── INSTALL_GUIDE.md
 ├── LICENSE
 ├── README.md
 └── README.en.md
@@ -156,7 +227,8 @@ Contribuições são bem-vindas!
 
 - **Projeto original:** [raghulkrishna/deepcool-ak620-digital-linux](https://github.com/raghulkrishna/deepcool-ak620-digital-linux)
 - **Protocolo HID:** [Algorithm0/deepcool-digital-info](https://github.com/Algorithm0/deepcool-digital-info)
-- **Adaptação Regata OS / System Tray:** [marquimRcc](https://github.com/marquimRcc)
+- **Controle LED:** [OpenRGB](https://openrgb.org/)
+- **Adaptação Regata OS / System Tray:** [marquimRcc with Claude Opus 4.6](https://github.com/marquimRcc)
 
 ---
 
