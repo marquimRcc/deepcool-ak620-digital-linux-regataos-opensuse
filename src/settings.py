@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class SettingsManager:
     """Gerencia a persistência de configurações do usuário."""
-    
+
     # Valores padrão
     DEFAULT_SETTINGS: Dict[str, Any] = {
         'display_mode': 'auto',
@@ -22,12 +22,14 @@ class SettingsManager:
         'alarm_temp': 80,
         'led_color': '#FF0000',
         'openrgb_device_id': None,
+        'openrgb_zone_id': None,
+        'openrgb_led_count': None,
     }
-    
+
     def __init__(self, settings_file: Optional[Path] = None):
         """
         Inicializa o gerenciador de configurações.
-        
+
         Args:
             settings_file: Caminho para o arquivo de configurações.
                           Se None, usa o padrão de SETTINGS_FILE.
@@ -35,7 +37,7 @@ class SettingsManager:
         self.settings_file = settings_file or SETTINGS_FILE
         self._settings: Dict[str, Any] = self.DEFAULT_SETTINGS.copy()
         self._ensure_config_dir()
-    
+
     def _ensure_config_dir(self) -> None:
         """Garante que o diretório de configuração existe."""
         try:
@@ -43,77 +45,77 @@ class SettingsManager:
             logger.debug(f"Diretório de configuração: {CONFIG_DIR}")
         except Exception as e:
             logger.error(f"Erro ao criar diretório de configuração: {e}")
-    
+
     def load(self) -> Dict[str, Any]:
         """
         Carrega configurações do arquivo.
-        
+
         Returns:
             Dicionário com as configurações carregadas
         """
         if not self.settings_file.exists():
             logger.info("Arquivo de configurações não encontrado, usando padrões")
             return self._settings.copy()
-        
+
         try:
             with open(self.settings_file, 'r', encoding='utf-8') as f:
                 loaded_settings = json.load(f)
-            
+
             # Validar e mesclar com padrões
             self._settings = self._validate_and_merge(loaded_settings)
             logger.info(f"Configurações carregadas de {self.settings_file}")
             logger.debug(f"Configurações: {self._settings}")
-            
+
             return self._settings.copy()
-            
+
         except json.JSONDecodeError as e:
             logger.error(f"Erro ao decodificar JSON: {e}")
             logger.warning("Usando configurações padrão")
             return self._settings.copy()
-            
+
         except Exception as e:
             logger.error(f"Erro ao carregar configurações: {e}")
             return self._settings.copy()
-    
+
     def save(self, settings: Dict[str, Any]) -> bool:
         """
         Salva configurações no arquivo.
-        
+
         Args:
             settings: Dicionário com as configurações a serem salvas
-            
+
         Returns:
             True se salvou com sucesso, False caso contrário
         """
         try:
             # Validar antes de salvar
             validated_settings = self._validate_and_merge(settings)
-            
+
             with open(self.settings_file, 'w', encoding='utf-8') as f:
                 json.dump(validated_settings, f, indent=2, ensure_ascii=False)
-            
+
             self._settings = validated_settings
             logger.info(f"Configurações salvas em {self.settings_file}")
             logger.debug(f"Configurações salvas: {validated_settings}")
-            
+
             return True
-            
+
         except Exception as e:
             logger.error(f"Erro ao salvar configurações: {e}")
             return False
-    
+
     def _validate_and_merge(self, settings: Dict[str, Any]) -> Dict[str, Any]:
         """
         Valida e mescla configurações com valores padrão.
-        
+
         Args:
             settings: Configurações a serem validadas
-            
+
         Returns:
             Configurações validadas e mescladas
         """
         validated: Dict[str, Any] = self.DEFAULT_SETTINGS.copy()
-        
+
         # display_mode
         if 'display_mode' in settings:
             mode = settings['display_mode']
@@ -121,7 +123,7 @@ class SettingsManager:
                 validated['display_mode'] = mode
             else:
                 logger.warning(f"display_mode inválido: {mode}, usando padrão")
-        
+
         # temp_unit
         if 'temp_unit' in settings:
             unit = settings['temp_unit']
@@ -129,14 +131,14 @@ class SettingsManager:
                 validated['temp_unit'] = unit
             else:
                 logger.warning(f"temp_unit inválido: {unit}, usando padrão")
-        
+
         # alarm_enabled
         if 'alarm_enabled' in settings:
             if isinstance(settings['alarm_enabled'], bool):
                 validated['alarm_enabled'] = settings['alarm_enabled']
             else:
                 logger.warning("alarm_enabled inválido, usando padrão")
-        
+
         # alarm_temp
         if 'alarm_temp' in settings:
             temp = settings['alarm_temp']
@@ -144,7 +146,7 @@ class SettingsManager:
                 validated['alarm_temp'] = int(temp)
             else:
                 logger.warning(f"alarm_temp inválido: {temp}, usando padrão")
-        
+
         # led_color
         if 'led_color' in settings:
             from .colors import validate_color
@@ -153,7 +155,7 @@ class SettingsManager:
                 validated['led_color'] = color
             else:
                 logger.warning(f"led_color inválido: {color}, usando padrão")
-        
+
         # openrgb_device_id
         if 'openrgb_device_id' in settings:
             dev_id = settings['openrgb_device_id']
@@ -163,36 +165,56 @@ class SettingsManager:
                 logger.warning(
                     f"openrgb_device_id inválido: {dev_id}, usando padrão"
                 )
-        
+
+        # openrgb_zone_id
+        if 'openrgb_zone_id' in settings:
+            zone_id = settings['openrgb_zone_id']
+            if zone_id is None or (isinstance(zone_id, int) and zone_id >= 0):
+                validated['openrgb_zone_id'] = zone_id
+            else:
+                logger.warning(
+                    f"openrgb_zone_id inválido: {zone_id}, usando padrão"
+                )
+
+        # openrgb_led_count
+        if 'openrgb_led_count' in settings:
+            led_count = settings['openrgb_led_count']
+            if led_count is None or (isinstance(led_count, int) and 1 <= led_count <= 300):
+                validated['openrgb_led_count'] = led_count
+            else:
+                logger.warning(
+                    f"openrgb_led_count inválido: {led_count}, usando padrão"
+                )
+
         return validated
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """
         Obtém valor de uma configuração.
-        
+
         Args:
             key: Chave da configuração
             default: Valor padrão se a chave não existir
-            
+
         Returns:
             Valor da configuração ou default
         """
         return self._settings.get(key, default)
-    
+
     def reset(self) -> bool:
         """
         Reseta configurações para os valores padrão.
-        
+
         Returns:
             True se resetou com sucesso, False caso contrário
         """
         logger.info("Resetando configurações para padrão")
         return self.save(self.DEFAULT_SETTINGS.copy())
-    
+
     def delete(self) -> bool:
         """
         Remove o arquivo de configurações.
-        
+
         Returns:
             True se removeu com sucesso, False caso contrário
         """

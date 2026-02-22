@@ -6,6 +6,13 @@
 [![KDE Plasma](https://img.shields.io/badge/KDE%20Plasma-Compatible-blue.svg)](https://kde.org/)
 
 Aplicativo system tray para coolers DeepCool da série AK Digital no **Regata OS** e **openSUSE** com **KDE Plasma**.
+## 🎬 Demo
+
+<div align="center">
+  <img src="docs/demo.gif" alt="DeepCool Digital - Demo" width="600">
+  <br>
+  <em>Controle de temperatura, uso de CPU e cores LED pelo system tray</em>
+</div>
 
 > 🇺🇸 [English version](README.en.md)
 

@@ -11,6 +11,16 @@ System tray application for DeepCool AK Series Digital coolers on **Regata OS** 
 
 ---
 
+## 🎬 Demo
+
+<div align="center">
+  <img src="docs/demo.gif" alt="DeepCool Digital - Demo" width="600">
+  <br>
+  <em>Temperature, CPU usage and LED color control from the system tray</em>
+</div>
+
+---
+
 ## ✨ Features
 
 - 🖥️ **System tray icon** with full right-click menu on KDE
@@ -189,6 +199,7 @@ The tray icon changes color based on temperature:
 │   ├── colors.py        # ARGB LED color control (via OpenRGB)
 │   └── tray.py          # System tray interface
 ├── docs/
+│   ├── demo.gif         # Demo GIF
 │   └── TROUBLESHOOTING.md
 ├── CHANGELOG.md
 ├── INSTALL_GUIDE.md
