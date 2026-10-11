@@ -187,6 +187,9 @@ O ícone na bandeja muda de cor conforme a temperatura:
 ├── main.py              # Ponto de entrada
 ├── install.sh           # Instalador
 ├── uninstall.sh         # Desinstalador
+├── enable-autostart.sh  # Script para habilitar autostart
+├── disable-autostart.sh # Script para desabilitar autostart
+├── deepcool-digital.desktop # Entrada de inicialização do sistema
 ├── requirements.txt     # Dependências Python
 ├── src/
 │   ├── __init__.py      # Pacote Python

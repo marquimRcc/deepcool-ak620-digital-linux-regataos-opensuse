@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=DeepCool Digital
+Comment=DeepCool AK Series Digital cooler driver
+Exec=sh -c 'if [ -x "$HOME/.local/share/deepcool-digital/venv/bin/python3" ]; then exec "$HOME/.local/share/deepcool-digital/venv/bin/python3" "$HOME/.local/share/deepcool-digital/main.py"; else exec python3 "$HOME/.local/share/deepcool-digital/main.py"; fi'
+Icon=deepcool-digital
+Terminal=false
+Categories=System;Monitor;
+StartupNotify=false
+X-KDE-autostart-after=panel

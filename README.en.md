@@ -184,6 +184,9 @@ The tray icon changes color based on temperature:
 ├── main.py              # Entry point
 ├── install.sh           # Installer
 ├── uninstall.sh         # Uninstaller
+├── enable-autostart.sh  # Script to enable autostart
+├── disable-autostart.sh # Script to disable autostart
+├── deepcool-digital.desktop # Desktop entry file
 ├── requirements.txt     # Python dependencies
 ├── src/
 │   ├── __init__.py      # Python package

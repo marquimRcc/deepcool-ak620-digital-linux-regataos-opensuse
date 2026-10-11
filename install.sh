@@ -283,7 +283,12 @@ mkdir -p "$INSTALL_DIR/src"
 cp "$SCRIPT_DIR/main.py"    "$INSTALL_DIR/"
 cp "$SCRIPT_DIR/requirements.txt" "$INSTALL_DIR/" 2>/dev/null || true
 cp "$SCRIPT_DIR/src/"*.py   "$INSTALL_DIR/src/"
+cp "$SCRIPT_DIR/deepcool-digital.desktop" "$INSTALL_DIR/" 2>/dev/null || true
+cp "$SCRIPT_DIR/enable-autostart.sh" "$INSTALL_DIR/" 2>/dev/null || true
+cp "$SCRIPT_DIR/disable-autostart.sh" "$INSTALL_DIR/" 2>/dev/null || true
 chmod +x "$INSTALL_DIR/main.py"
+[ -f "$INSTALL_DIR/enable-autostart.sh" ] && chmod +x "$INSTALL_DIR/enable-autostart.sh"
+[ -f "$INSTALL_DIR/disable-autostart.sh" ] && chmod +x "$INSTALL_DIR/disable-autostart.sh"
 
 ok "Aplicativo instalado em $INSTALL_DIR"
 
@@ -300,8 +305,13 @@ read -p "  Selecione [1-2] (Enter para Sim): " AUTO_CHOICE
 AUTO_CHOICE=${AUTO_CHOICE:-1}
 
 if [ "$AUTO_CHOICE" == "1" ]; then
-    mkdir -p "$AUTOSTART_DIR"
-    cat > "$AUTOSTART_DIR/$APP_NAME.desktop" << EOF
+    if [ -x "$SCRIPT_DIR/enable-autostart.sh" ]; then
+        "$SCRIPT_DIR/enable-autostart.sh"
+    elif [ -x "$INSTALL_DIR/enable-autostart.sh" ]; then
+        "$INSTALL_DIR/enable-autostart.sh"
+    else
+        mkdir -p "$AUTOSTART_DIR"
+        cat > "$AUTOSTART_DIR/$APP_NAME.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=DeepCool Digital
@@ -313,10 +323,17 @@ Categories=System;Monitor;
 StartupNotify=false
 X-KDE-autostart-after=panel
 EOF
-    ok "Autostart habilitado"
+        ok "Autostart habilitado"
+    fi
 else
-    rm -f "$AUTOSTART_DIR/$APP_NAME.desktop"
-    info "Autostart não habilitado (pode ativar pelo menu do app)"
+    if [ -x "$SCRIPT_DIR/disable-autostart.sh" ]; then
+        "$SCRIPT_DIR/disable-autostart.sh"
+    elif [ -x "$INSTALL_DIR/disable-autostart.sh" ]; then
+        "$INSTALL_DIR/disable-autostart.sh"
+    else
+        rm -f "$AUTOSTART_DIR/$APP_NAME.desktop"
+        info "Autostart não habilitado (pode ativar pelo menu do app)"
+    fi
 fi
 
 ##############################################################################

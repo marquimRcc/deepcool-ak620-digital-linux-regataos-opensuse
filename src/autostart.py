@@ -2,6 +2,7 @@
 """Gerencia o autostart no KDE Plasma via .desktop file."""
 
 import os
+import sys
 from .config import AUTOSTART_DIR, AUTOSTART_FILE, APP_DISPLAY_NAME
 
 
@@ -24,7 +25,7 @@ def enable():
 Type=Application
 Name={APP_DISPLAY_NAME}
 Comment=DeepCool AK Series Digital cooler driver
-Exec=/usr/bin/python3.11 {script_path}
+Exec={sys.executable} {script_path}
 Icon=deepcool-digital
 Terminal=false
 Categories=System;Monitor;
