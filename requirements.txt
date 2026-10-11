@@ -1,8 +1,9 @@
 # DeepCool AK Series Digital - Dependências Python
 # Compatível com Python 3.8+
 
-# Interface gráfica Qt5
-PyQt5>=5.15.0
+# Interface gráfica Qt (suporta PyQt5 ou PyQt6)
+PyQt5>=5.15.0; python_version < "3.13"
+PyQt6>=6.4.0; python_version >= "3.13"
 
 # Comunicação HID com dispositivos USB
 hidapi>=0.12.0

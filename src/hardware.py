@@ -123,6 +123,8 @@ def detect_model(product_id: int) -> str:
 def get_temperature(sensor: str) -> float:
     """
     Lê temperatura atual do sensor (em Celsius).
+    Prioriza leituras de encapsulamento geral (Package id 0, Tdie, Tctl)
+    antes de fazer fallback para núcleos individuais.
     
     Args:
         sensor: Nome do sensor
@@ -139,13 +141,26 @@ def get_temperature(sensor: str) -> float:
             logger.error(f"Sensor '{sensor}' não encontrado")
             raise RuntimeError(f"Sensor '{sensor}' não está disponível")
         
-        if not temps[sensor]:
+        entries = temps[sensor]
+        if not entries:
             logger.error(f"Sensor '{sensor}' não retornou dados")
             raise RuntimeError(f"Sensor '{sensor}' não retornou leituras")
         
-        temp: float = temps[sensor][0].current
-        logger.debug(f"Temperatura lida: {temp}°C")
-        return temp
+        # Priorizar labels térmicas representativas do pacote/CPU
+        priority_labels = ["package id 0", "package", "tdie", "tctl", "cpu", "core 0"]
+        for target in priority_labels:
+            for entry in entries:
+                if entry.label and target in entry.label.lower() and entry.current is not None:
+                    logger.debug(f"Temperatura lida de '{sensor}' [{entry.label}]: {entry.current}°C")
+                    return float(entry.current)
+
+        # Fallback: primeira leitura válida disponível
+        for entry in entries:
+            if entry.current is not None:
+                logger.debug(f"Temperatura lida de '{sensor}' [fallback]: {entry.current}°C")
+                return float(entry.current)
+
+        raise RuntimeError(f"Sensor '{sensor}' não possui leituras válidas de temperatura")
         
     except (KeyError, IndexError) as e:
         logger.error(f"Erro ao acessar dados do sensor '{sensor}': {e}")
@@ -158,6 +173,7 @@ def get_temperature(sensor: str) -> float:
 def get_cpu_usage() -> int:
     """
     Lê uso atual da CPU (percentual).
+    Usa medição não-bloqueante (interval=None) para eliminar latência.
     
     Returns:
         Uso da CPU em percentual (0-100)
@@ -166,7 +182,7 @@ def get_cpu_usage() -> int:
         RuntimeError: Se não for possível ler o uso da CPU
     """
     try:
-        usage: int = round(psutil.cpu_percent(interval=0.1))
+        usage: int = round(psutil.cpu_percent(interval=None))
         logger.debug(f"Uso da CPU: {usage}%")
         return usage
     except Exception as e:

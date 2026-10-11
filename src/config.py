@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """Configuração e constantes globais."""
 
+import os
 from pathlib import Path
 from typing import Dict
 
 # Versão
-VERSION: str = "1.4.0"
+VERSION: str = "1.5.0"
 APP_NAME: str = "deepcool-digital"
 APP_DISPLAY_NAME: str = "DeepCool Digital"
 
@@ -32,7 +33,14 @@ ALARM_TEMPS: list[int] = [60, 70, 80, 90]
 CONFIG_DIR: Path = Path.home() / ".config" / APP_NAME
 AUTOSTART_DIR: Path = Path.home() / ".config" / "autostart"
 AUTOSTART_FILE: Path = AUTOSTART_DIR / f"{APP_NAME}.desktop"
-LOCK_FILE: str = f"/tmp/{APP_NAME}.lock"
+
+# Lock file seguro: prefere XDG_RUNTIME_DIR do usuário, com fallback para CONFIG_DIR
+_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+if _runtime_dir and os.path.isdir(_runtime_dir):
+    LOCK_FILE: str = str(Path(_runtime_dir) / f"{APP_NAME}.lock")
+else:
+    LOCK_FILE: str = str(CONFIG_DIR / f"{APP_NAME}.lock")
+
 LOG_FILE: Path = CONFIG_DIR / f"{APP_NAME}.log"
 SETTINGS_FILE: Path = CONFIG_DIR / "settings.json"
 

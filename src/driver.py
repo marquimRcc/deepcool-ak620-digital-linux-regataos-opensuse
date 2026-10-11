@@ -8,8 +8,8 @@ from typing import Dict, Any, Optional
 
 import hid
 import psutil
-from PyQt5.QtCore import pyqtSignal, QObject
 
+from src.qt import pyqtSignal, QObject
 from .config import VENDOR_ID, INTERVAL
 from .protocol import build_packet, DisplayMode
 from .hardware import get_temperature, get_cpu_usage
@@ -43,6 +43,8 @@ class DeepCoolDriver(threading.Thread):
         self.sensor: str = sensor
         self.running: bool = True
         self.device: Optional[hid.device] = None
+        self._device_lock = threading.Lock()
+        self._stop_event = threading.Event()
 
         # Configurações (alteráveis pelo menu)
         self.display_mode: str = "auto"   # "auto", "temp", "util"
@@ -54,34 +56,38 @@ class DeepCoolDriver(threading.Thread):
 
     def _connect(self) -> bool:
         """
-        Tenta conectar ao dispositivo HID.
+        Tenta conectar ao dispositivo HID de forma segura.
         
         Returns:
             True se conectado com sucesso
         """
         try:
-            self.device = hid.device()
-            self.device.open(VENDOR_ID, self.product_id)
-            self.device.set_nonblocking(1)
-            
-            # Enviar pacote de inicialização
-            init_packet: list[int] = build_packet(mode="start")
-            self.device.write(init_packet)
-            
+            with self._device_lock:
+                dev = hid.device()
+                dev.open(VENDOR_ID, self.product_id)
+                dev.set_nonblocking(1)
+                
+                # Enviar pacote de inicialização
+                init_packet: list[int] = build_packet(mode="start")
+                dev.write(init_packet)
+                self.device = dev
+                
             logger.info(f"Conectado ao dispositivo 0x{VENDOR_ID:04x}:0x{self.product_id:04x}")
             self.signals.connection_changed.emit(True)
             return True
             
         except hid.HIDException as e:
             logger.error(f"Erro HID ao conectar: {e}")
-            self.device = None
+            with self._device_lock:
+                self.device = None
             self.signals.connection_changed.emit(False)
             self.signals.error_occurred.emit(f"Erro de conexão HID: {e}")
             return False
             
         except OSError as e:
             logger.error(f"Erro de permissão ou dispositivo não encontrado: {e}")
-            self.device = None
+            with self._device_lock:
+                self.device = None
             self.signals.connection_changed.emit(False)
             self.signals.error_occurred.emit(
                 "Erro de permissão USB. Verifique as regras udev."
@@ -90,21 +96,23 @@ class DeepCoolDriver(threading.Thread):
             
         except Exception as e:
             logger.error(f"Erro inesperado ao conectar: {e}", exc_info=True)
-            self.device = None
+            with self._device_lock:
+                self.device = None
             self.signals.connection_changed.emit(False)
             self.signals.error_occurred.emit(f"Erro ao conectar: {e}")
             return False
 
     def _disconnect(self) -> None:
-        """Desconecta do dispositivo."""
-        if self.device:
-            try:
-                self.device.close()
-                logger.info("Dispositivo desconectado")
-            except Exception as e:
-                logger.warning(f"Erro ao desconectar dispositivo: {e}")
-            finally:
-                self.device = None
+        """Desconecta do dispositivo de forma thread-safe."""
+        with self._device_lock:
+            if self.device:
+                try:
+                    self.device.close()
+                    logger.info("Dispositivo desconectado")
+                except Exception as e:
+                    logger.warning(f"Erro ao desconectar dispositivo: {e}")
+                finally:
+                    self.device = None
 
     def _is_alarm_active(self, temp_c: float) -> bool:
         """
@@ -118,33 +126,37 @@ class DeepCoolDriver(threading.Thread):
         """
         return self.alarm_enabled and temp_c >= self.alarm_temp
 
-    def _send(self, value: int, mode: DisplayMode) -> None:
+    def _send(self, value: int, mode: DisplayMode, temp_c: Optional[float] = None) -> None:
         """
-        Envia pacote para o dispositivo.
+        Envia pacote para o dispositivo de forma thread-safe.
         
         Args:
             value: Valor a ser exibido
             mode: Modo de exibição
+            temp_c: Temperatura em Celsius (opcional, evita releitura redundante)
             
         Raises:
             hid.HIDException: Erro de comunicação HID
             OSError: Erro de I/O
         """
         try:
-            temp_c: float = get_temperature(self.sensor)
-            alarm: bool = self._is_alarm_active(temp_c) if mode != "util" else False
+            if temp_c is None and mode != "util":
+                temp_c = get_temperature(self.sensor)
+
+            alarm: bool = self._is_alarm_active(temp_c) if (mode != "util" and temp_c is not None) else False
             data: list[int] = build_packet(value=value, mode=mode, alarm=alarm)
             
-            if self.device is None:
-                raise IOError("Dispositivo não conectado")
-            
-            self.device.set_nonblocking(1)
-            bytes_written: int = self.device.write(data)
-            
-            if bytes_written == 0:
-                logger.warning("Nenhum byte escrito no dispositivo")
-                raise IOError("Falha ao escrever no dispositivo HID")
+            with self._device_lock:
+                if self.device is None:
+                    raise IOError("Dispositivo não conectado")
                 
+                self.device.set_nonblocking(1)
+                bytes_written: int = self.device.write(data)
+                
+                if bytes_written == 0:
+                    logger.warning("Nenhum byte escrito no dispositivo")
+                    raise IOError("Falha ao escrever no dispositivo HID")
+                    
             logger.debug(f"Pacote enviado: mode={mode}, value={value}, alarm={alarm}")
             
         except hid.HIDException as e:
@@ -170,7 +182,7 @@ class DeepCoolDriver(threading.Thread):
         temp_display, _ = format_temperature(temp_c, self.temp_unit)
         mode: DisplayMode = "temp_c" if self.temp_unit == "C" else "temp_f"
         
-        self._send(temp_display, mode)
+        self._send(temp_display, mode, temp_c=temp_c)
         self.signals.status_updated.emit("temp", temp_c, usage)
 
     def _cycle_util(self) -> None:
@@ -184,70 +196,75 @@ class DeepCoolDriver(threading.Thread):
         temp_c: float = get_temperature(self.sensor)
         usage: int = get_cpu_usage()
         
-        self._send(usage, "util")
+        self._send(usage, "util", temp_c=temp_c)
         self.signals.status_updated.emit("util", temp_c, usage)
 
     def run(self) -> None:
-        """Loop principal do driver."""
+        """Loop principal do driver com controle de parada imediata."""
         logger.info("Thread do driver iniciada")
         
         # Inicializar leitura de CPU
         try:
-            psutil.cpu_percent()
-            time.sleep(0.5)
+            psutil.cpu_percent(interval=None)
         except Exception as e:
             logger.error(f"Erro ao inicializar leitura de CPU: {e}")
 
-        while self.running:
+        while not self._stop_event.is_set():
             try:
                 # Tentar conectar se desconectado
                 if self.device is None:
                     if not self._connect():
                         logger.debug("Aguardando para tentar reconectar...")
-                        time.sleep(3)
+                        if self._stop_event.wait(3):
+                            break
                         continue
 
                 # Executar ciclo de acordo com o modo
                 if self.display_mode == "temp":
                     self._cycle_temp()
-                    time.sleep(INTERVAL)
+                    if self._stop_event.wait(INTERVAL):
+                        break
 
                 elif self.display_mode == "util":
                     self._cycle_util()
-                    time.sleep(INTERVAL)
+                    if self._stop_event.wait(INTERVAL):
+                        break
 
                 else:  # auto
                     self._cycle_temp()
-                    time.sleep(INTERVAL)
-                    if not self.running:
+                    if self._stop_event.wait(INTERVAL):
                         break
                     self._cycle_util()
-                    time.sleep(INTERVAL)
+                    if self._stop_event.wait(INTERVAL):
+                        break
 
             except (hid.HIDException, OSError) as e:
                 logger.error(f"Erro de comunicação com dispositivo: {e}")
                 self._disconnect()
                 self.signals.connection_changed.emit(False)
                 self.signals.error_occurred.emit("Dispositivo desconectado")
-                time.sleep(3)
+                if self._stop_event.wait(3):
+                    break
                 
             except RuntimeError as e:
                 logger.error(f"Erro ao ler sensores: {e}")
-                # Não desconecta, apenas aguarda antes de tentar novamente
-                time.sleep(INTERVAL)
+                if self._stop_event.wait(INTERVAL):
+                    break
                 
             except Exception as e:
                 logger.error(f"Erro inesperado no loop do driver: {e}", exc_info=True)
                 self._disconnect()
                 self.signals.connection_changed.emit(False)
-                time.sleep(3)
+                if self._stop_event.wait(3):
+                    break
         
         logger.info("Thread do driver encerrada")
 
     def stop(self) -> None:
-        """Para o driver e desconecta."""
+        """Para o driver e desconecta de forma imediata e thread-safe."""
         logger.info("Parando driver...")
         self.running = False
+        self._stop_event.set()
         self._disconnect()
 
     def get_settings(self) -> Dict[str, Any]:

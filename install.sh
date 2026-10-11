@@ -108,62 +108,63 @@ ok "Python $PYTHON_VERSION ($PYTHON_CMD)"
 echo -e "\n${B}═══ ETAPA 2: Instalando Dependências ═══${N}\n"
 ##############################################################################
 
-# Detectar distribuição para instalar PyQt5
+# Detectar distribuição para instalar PyQt5 / PyQt6
 if command -v zypper &>/dev/null; then
     info "Detectado: openSUSE/Regata OS"
     
-    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
-        info "Instalando PyQt5..."
+    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null && \
+       ! "$PYTHON_CMD" -c "from PyQt6.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
+        info "Instalando Qt (PyQt5/PyQt6)..."
         PYTHON_VER_SHORT=$(echo "$PYTHON_VERSION" | cut -d'.' -f1,2 | tr -d '.')
-        if ! sudo zypper install -y "python${PYTHON_VER_SHORT}-qt5" 2>/dev/null; then
-            sudo zypper install -y python3-qt5 python3-qt5-sip
+        if ! sudo zypper install -y "python${PYTHON_VER_SHORT}-qt6" 2>/dev/null && \
+           ! sudo zypper install -y "python${PYTHON_VER_SHORT}-qt5" 2>/dev/null; then
+            sudo zypper install -y python3-qt5 python3-qt5-sip 2>/dev/null || sudo zypper install -y python3-qt6 2>/dev/null || true
         fi
     fi
-    ok "PyQt5"
+    ok "Interface gráfica Qt (PyQt5/PyQt6)"
     
 elif command -v apt &>/dev/null; then
     info "Detectado: Debian/Ubuntu"
     
-    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
-        info "Instalando PyQt5..."
-        sudo apt install -y python3-pyqt5
+    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null && \
+       ! "$PYTHON_CMD" -c "from PyQt6.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
+        info "Instalando PyQt..."
+        sudo apt install -y python3-pyqt5 2>/dev/null || sudo apt install -y python3-pyqt6 2>/dev/null || true
     fi
-    ok "PyQt5"
+    ok "Interface gráfica Qt (PyQt5/PyQt6)"
     
 elif command -v dnf &>/dev/null; then
     info "Detectado: Fedora"
     
-    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
-        info "Instalando PyQt5..."
-        sudo dnf install -y python3-qt5
+    if ! "$PYTHON_CMD" -c "from PyQt5.QtWidgets import QSystemTrayIcon" 2>/dev/null && \
+       ! "$PYTHON_CMD" -c "from PyQt6.QtWidgets import QSystemTrayIcon" 2>/dev/null; then
+        info "Instalando PyQt..."
+        sudo dnf install -y python3-qt5 2>/dev/null || sudo dnf install -y python3-qt6 2>/dev/null || true
     fi
-    ok "PyQt5"
+    ok "Interface gráfica Qt (PyQt5/PyQt6)"
 else
-    warn "Distribuição não reconhecida. Tentando instalar via pip..."
+    warn "Distribuição não reconhecida. Tentando instalar dependências..."
 fi
 
-# Instalar dependências via pip
+# Instalar dependências Python
 info "Instalando dependências Python..."
 
-if ! "$PYTHON_CMD" -m pip --version &>/dev/null; then
-    info "Instalando pip..."
-    "$PYTHON_CMD" -m ensurepip --default-pip 2>/dev/null || true
-fi
+VENV_DIR="$INSTALL_DIR/venv"
+mkdir -p "$INSTALL_DIR"
 
-# Remover conflito do pacote hid (openSUSE)
-"$PYTHON_CMD" -m pip uninstall -y hid 2>/dev/null || true
-
-if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
-    "$PYTHON_CMD" -m pip install --user -r "$SCRIPT_DIR/requirements.txt" -q
-else
-    "$PYTHON_CMD" -m pip install --user hidapi psutil -q
+# Tentar instalar via pip do usuário; se falhar (ex: PEP 668), criar venv dedicado
+if ! "$PYTHON_CMD" -m pip install --user -r "$SCRIPT_DIR/requirements.txt" -q 2>/dev/null; then
+    info "Criando ambiente virtual isolado em $VENV_DIR..."
+    "$PYTHON_CMD" -m venv "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install -r "$SCRIPT_DIR/requirements.txt" -q
+    PYTHON_CMD="$VENV_DIR/bin/python3"
 fi
 
 if "$PYTHON_CMD" -c "import hid; hid.device()" 2>/dev/null; then
     ok "hidapi (biblioteca HID corrigida)"
 else
     err "Falha na biblioteca HID"
-    echo -e "  ${Y}Tente: $PYTHON_CMD -m pip install --user --force-reinstall hidapi${N}"
+    echo -e "  ${Y}Tente: $PYTHON_CMD -m pip install --force-reinstall hidapi${N}"
     exit 1
 fi
 ok "psutil"

@@ -7,14 +7,12 @@ import subprocess
 import logging
 from typing import Optional
 
-from PyQt5.QtWidgets import (
+from src.qt import (
     QSystemTrayIcon, QMenu, QAction, QActionGroup,
     QApplication, QColorDialog,
-)
-from PyQt5.QtGui import (
     QColor, QPixmap, QIcon, QPainter, QBrush, QPen, QConicalGradient,
+    Qt, NO_PEN, ANTIALIASING,
 )
-from PyQt5.QtCore import Qt
 
 from .config import VERSION, VENDOR_ID, ALARM_TEMPS, GITHUB_URL
 from .i18n import tr
@@ -50,10 +48,10 @@ def _make_color_icon(
         QIcon com o ícone colorido
     """
     pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.transparent)
+    pixmap.fill(QColor(0, 0, 0, 0))
 
     painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setRenderHint(ANTIALIASING)
 
     if is_off:
         # Círculo cinza com X
@@ -74,7 +72,7 @@ def _make_color_icon(
         gradient.setColorAt(0.83, QColor("#6633FF"))
         gradient.setColorAt(1.0, QColor("#FF0000"))
         painter.setBrush(QBrush(gradient))
-        painter.setPen(Qt.NoPen)
+        painter.setPen(NO_PEN)
         painter.drawEllipse(1, 1, size - 2, size - 2)
     else:
         # Cor sólida
@@ -84,7 +82,7 @@ def _make_color_icon(
         if hex_color and hex_color.upper() in ("#FFFFFF", "#FFF"):
             painter.setPen(QPen(QColor("#AAAAAA"), 1))
         else:
-            painter.setPen(Qt.NoPen)
+            painter.setPen(NO_PEN)
         painter.drawEllipse(1, 1, size - 2, size - 2)
 
     painter.end()
@@ -550,7 +548,7 @@ class DeepCoolTray:
         self.tray.setToolTip(
             f"DeepCool {self.model}\n{temp_display}{unit} │ CPU: {cpu}%"
         )
-        self.tray.setIcon(create_status_icon(temp_c, self.connected))
+        self.tray.setIcon(create_status_icon(temp_display, unit, self.connected, temp_celsius=temp_c))
 
     def _on_connection_changed(self, connected: bool) -> None:
         """Callback quando o status de conexão muda."""

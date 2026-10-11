@@ -104,13 +104,25 @@ def list_devices() -> List[Dict]:
     return devices
 
 
-def find_motherboard_argb_device() -> Optional[int]:
+_cached_argb_device_id: Optional[int] = None
+
+
+def find_motherboard_argb_device(force_refresh: bool = False) -> Optional[int]:
     """
     Tenta encontrar o dispositivo ARGB da placa-mãe automaticamente.
+    Utiliza cache em memória para evitar chamadas de processo repetitivas.
+
+    Args:
+        force_refresh: Se True, ignora o cache e reexecuta a detecção.
 
     Returns:
         ID do dispositivo OpenRGB ou None.
     """
+    global _cached_argb_device_id
+
+    if not force_refresh and _cached_argb_device_id is not None:
+        return _cached_argb_device_id
+
     devices = list_devices()
     if not devices:
         return None
@@ -132,14 +144,16 @@ def find_motherboard_argb_device() -> Optional[int]:
                     f"Dispositivo ARGB encontrado: "
                     f"[{device['id']}] {device['name']}"
                 )
-                return int(device["id"])
+                _cached_argb_device_id = int(device["id"])
+                return _cached_argb_device_id
 
     # Fallback: primeiro dispositivo
     logger.info(
         f"Usando primeiro dispositivo RGB: "
         f"[{devices[0]['id']}] {devices[0]['name']}"
     )
-    return int(devices[0]["id"])
+    _cached_argb_device_id = int(devices[0]["id"])
+    return _cached_argb_device_id
 
 
 # ──────────────────────────────────────────────────────────────

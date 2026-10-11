@@ -10,11 +10,11 @@ https://github.com/marquimRcc/deepcool-ak620-digital-linux-regataos-opensuse
 import sys
 import fcntl
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, TextIO
 
-from PyQt5.QtWidgets import QApplication, QMessageBox
-
+from src.qt import QApplication, QMessageBox
 from src.config import APP_DISPLAY_NAME, LOCK_FILE, LOG_FILE
 from src.i18n import tr
 from src.hardware import detect_product_id, detect_model, detect_sensor
@@ -22,7 +22,7 @@ from src.tray import DeepCoolTray
 
 
 def setup_logging() -> None:
-    """Configura o sistema de logging."""
+    """Configura o sistema de logging com rotação de arquivos."""
     log_dir: Path = Path(LOG_FILE).parent
     log_dir.mkdir(parents=True, exist_ok=True)
     
@@ -30,7 +30,12 @@ def setup_logging() -> None:
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(LOG_FILE),
+            RotatingFileHandler(
+                LOG_FILE,
+                maxBytes=5 * 1024 * 1024,
+                backupCount=2,
+                encoding='utf-8'
+            ),
             logging.StreamHandler()
         ]
     )
@@ -47,6 +52,7 @@ def acquire_lock() -> TextIO:
         RuntimeError: Se já existe uma instância rodando
     """
     try:
+        Path(LOCK_FILE).parent.mkdir(parents=True, exist_ok=True)
         lock_file: TextIO = open(LOCK_FILE, 'w')
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         return lock_file
@@ -105,7 +111,7 @@ def main() -> None:
         tray.start()
         
         logger.info("Aplicação iniciada com sucesso")
-        exit_code = app.exec_()
+        exit_code = app.exec() if hasattr(app, "exec") else app.exec_()
         
     except RuntimeError as e:
         # Erros esperados (já logados, instância duplicada, etc.)

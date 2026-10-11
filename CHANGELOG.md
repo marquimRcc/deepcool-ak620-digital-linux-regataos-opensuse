@@ -1,5 +1,26 @@
 # Changelog - DeepCool AK Series Digital
 
+## [1.5.0] - 2026-10-11
+
+### 🛡️ Segurança e Resiliência
+- **Lockfile seguro:** Migração de `/tmp` para `$XDG_RUNTIME_DIR` (com fallback para `~/.config`), isolando instâncias por usuário e prevenindo ataques de colisão ou negação de serviço (DoS).
+- **Rotação de logs:** Adicionado `RotatingFileHandler` (5 MB, até 2 backups) para evitar crescimento ilimitado de log em disco.
+
+### ⚡ Otimização e Concorrência
+- **Thread-Safety HID:** Proteção com `threading.Lock` para conexões e escritas no dispositivo USB, eliminando condições de corrida no encerramento.
+- **Encerramento imediato:** Substituído `time.sleep()` por `threading.Event`, permitindo que o aplicativo feche ou reinicie o driver instantaneamente (0ms de espera).
+- **CPU Não-Bloqueante:** Otimizado `get_cpu_usage()` com `psutil.cpu_percent(interval=None)`, removendo a latência de bloqueio de 100ms a cada ciclo.
+- **Detecção térmica inteligente:** `get_temperature()` agora busca por labels prioritárias de encapsulamento real (`Package id 0`, `Tdie`, `Tctl`, `cpu`) antes do fallback genérico.
+- **Eliminação de leituras redundantes:** O valor térmico agora é aproveitado no ciclo do driver sem releituras desnecessárias de sensores.
+- **Cache OpenRGB:** Adicionado cache em memória do dispositivo ARGB para evitar reexecuções contínuas de subprocessos.
+
+### 🎨 Interface e Compatibilidade
+- **Suporte Dual Qt:** Nova camada `src/qt.py` que suporta nativamente tanto **PyQt5** quanto **PyQt6**, garantindo portabilidade em distros modernas (openSUSE Leap 16/Tumbleweed, Fedora, Ubuntu).
+- **Correção Visual no Ícone:** O ícone da bandeja do sistema agora respeita a unidade selecionada pelo usuário, exibindo corretamente tanto `°C` quanto `°F`.
+- **Scripts de Autostart:** Adicionados `enable-autostart.sh`, `disable-autostart.sh` e `deepcool-digital.desktop` ao repositório.
+
+---
+
 ## [1.4.0] - 2026-02-16
 
 ### ✨ Novas Funcionalidades
