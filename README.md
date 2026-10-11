@@ -238,7 +238,7 @@ Contribuições são bem-vindas!
 - **Projeto original:** [raghulkrishna/deepcool-ak620-digital-linux](https://github.com/raghulkrishna/deepcool-ak620-digital-linux)
 - **Protocolo HID:** [Algorithm0/deepcool-digital-info](https://github.com/Algorithm0/deepcool-digital-info)
 - **Controle LED:** [OpenRGB](https://openrgb.org/)
-- **Adaptação Regata OS / System Tray:** [marquimRcc with Claude Opus 4.6](https://github.com/marquimRcc)
+- **Adaptação Regata OS / System Tray:** [marquimRcc with Claude Opus 4.6](https://github.com/marquimRcc) (atualizado por Antigravity 3.8)
 
 ---
 
