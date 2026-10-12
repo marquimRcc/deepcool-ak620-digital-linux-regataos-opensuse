@@ -188,18 +188,22 @@ def set_color(hex_color: str, device_id: Optional[int] = None, zone_id: Optional
     args = ["--noautoconnect", "-d", str(device_id)]
     if zone_id is not None:
         args += ["-z", str(zone_id)]
-    if led_count is not None:
-        args += ["-sz", str(led_count)]
-
-    # Para headers ARGB (D_LED), normalmente é necessário definir o tamanho da zone
-    # e usar modo Direct para refletir a cor imediatamente.
-    mode = "Direct" if (zone_id is not None or led_count is not None) else "Static"
-    args += ["-m", mode, "-c", color]
+        if led_count is not None:
+            args += ["-sz", str(led_count)]
+        args += ["-c", color]
+    else:
+        # Aplica explicitamente nas zonas ARGB digitais (D_LED1 = 0, D_LED2 = 1) com tamanho
+        # garantido e em todas as zonas do dispositivo no modo Direct nativo da Gigabyte
+        args += [
+            "-z", "0", "-sz", "30", "-c", color,
+            "-z", "1", "-sz", "30", "-c", color,
+            "-c", color,
+        ]
 
     output = _run_openrgb(*args)
     if output is not None:
         logger.info(
-            f"Cor #{color} aplicada ao dispositivo {device_id}" + (f" (zone {zone_id}, leds {led_count})" if (zone_id is not None or led_count is not None) else "")
+            f"Cor #{color} aplicada ao dispositivo {device_id}" + (f" (zone {zone_id}, leds {led_count})" if (zone_id is not None or led_count is not None) else " (zonas ARGB D_LED1, D_LED2 e Global)")
         )
         return True
     return False
@@ -220,8 +224,8 @@ def set_rainbow(device_id: Optional[int] = None, zone_id: Optional[int] = None, 
     if device_id is None:
         return False
 
-    for mode in ["Spectrum Cycle", "Rainbow", "Rainbow Wave",
-                 "Color Cycle", "Breathing"]:
+    for mode in ["Color Cycle", "Spectrum Cycle", "Rainbow", "Rainbow Wave",
+                 "Breathing"]:
         args = ["--noautoconnect", "-d", str(device_id)]
         if zone_id is not None:
             args += ["-z", str(zone_id)]
